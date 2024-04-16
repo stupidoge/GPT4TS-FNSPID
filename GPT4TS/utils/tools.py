@@ -12,6 +12,7 @@ from utils.metrics import metric
 
 plt.switch_backend('agg')
 
+
 def adjust_learning_rate(optimizer, epoch, args):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
     # if args.decay_fac is None:
@@ -23,11 +24,11 @@ def adjust_learning_rate(optimizer, epoch, args):
     #         2: 5e-5, 4: 1e-5, 6: 5e-6, 8: 1e-6,
     #         10: 5e-7, 15: 1e-7, 20: 5e-8
     #     }
-    if args.lradj =='type1':
+    if args.lradj == 'type1':
         lr_adjust = {epoch: args.learning_rate if epoch < 3 else args.learning_rate * (0.9 ** ((epoch - 3) // 1))}
-    elif args.lradj =='type2':
+    elif args.lradj == 'type2':
         lr_adjust = {epoch: args.learning_rate * (args.decay_fac ** ((epoch - 1) // 1))}
-    elif args.lradj =='type4':
+    elif args.lradj == 'type4':
         lr_adjust = {epoch: args.learning_rate * (args.decay_fac ** ((epoch) // 1))}
     else:
         args.learning_rate = 1e-4
@@ -104,9 +105,9 @@ def visual(true, preds=None, name='./pic/test.pdf'):
 
 
 def convert_tsf_to_dataframe(
-    full_file_path_and_name,
-    replace_missing_vals_with="NaN",
-    value_column_name="series_value",
+        full_file_path_and_name,
+        replace_missing_vals_with="NaN",
+        value_column_name="series_value",
 ):
     col_names = []
     col_types = []
@@ -131,7 +132,7 @@ def convert_tsf_to_dataframe(
                         line_content = line.split(" ")
                         if line.startswith("@attribute"):
                             if (
-                                len(line_content) != 3
+                                    len(line_content) != 3
                             ):  # Attributes have both name and type
                                 raise Exception("Invalid meta-data specification.")
 
@@ -139,7 +140,7 @@ def convert_tsf_to_dataframe(
                             col_types.append(line_content[2])
                         else:
                             if (
-                                len(line_content) != 2
+                                    len(line_content) != 2
                             ):  # Other meta-data have only values
                                 raise Exception("Invalid meta-data specification.")
 
@@ -199,7 +200,7 @@ def convert_tsf_to_dataframe(
                                 numeric_series.append(float(val))
 
                         if numeric_series.count(replace_missing_vals_with) == len(
-                            numeric_series
+                                numeric_series
                         ):
                             raise Exception(
                                 "All series values are missing. A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series."
@@ -264,7 +265,7 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
             batch_y_mark = batch_y_mark.float().to(device)
 
             outputs = model(batch_x, itr)
-            
+
             # encoder - decoder
             outputs = outputs[:, -args.pred_len:, :]
             batch_y = batch_y[:, -args.pred_len:, :].to(device)
@@ -283,9 +284,11 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
         model.out_layer.train()
     return total_loss
 
+
 def MASE(x, freq, pred, true):
     masep = np.mean(np.abs(x[:, freq:] - x[:, :-freq]))
     return np.mean(np.abs(pred - true) / (masep + 1e-8))
+
 
 def test(model, test_data, test_loader, args, device, itr):
     preds = []
@@ -295,7 +298,6 @@ def test(model, test_data, test_loader, args, device, itr):
     model.eval()
     with torch.no_grad():
         for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(test_loader)):
-            
             # outputs_np = batch_x.cpu().numpy()
             # np.save("emb_test/ETTh2_192_test_input_itr{}_{}.npy".format(itr, i), outputs_np)
             # outputs_np = batch_y.cpu().numpy()
@@ -303,24 +305,26 @@ def test(model, test_data, test_loader, args, device, itr):
 
             batch_x = batch_x.float().to(device)
             batch_y = batch_y.float()
-            
+
             outputs = model(batch_x[:, -args.seq_len:, :], itr)
-            
+
             # encoder - decoder
             outputs = outputs[:, -args.pred_len:, :]
             batch_y = batch_y[:, -args.pred_len:, :].to(device)
 
             pred = outputs.detach().cpu().numpy()
             true = batch_y.detach().cpu().numpy()
-            
+
             preds.append(pred)
             trues.append(true)
 
     preds = np.array(preds)
     trues = np.array(trues)
     # mases = np.mean(np.array(mases))
+    # print('test shape:', preds.shape, trues.shape)
     preds = preds.reshape(-1, preds.shape[-2], preds.shape[-1])
     trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
+    # print('test shape:', preds.shape, trues.shape)
 
     mae, mse, rmse, mape, mspe, smape, nd = metric(preds, trues)
     # print('mae:{:.4f}, mse:{:.4f}, rmse:{:.4f}, smape:{:.4f}, mases:{:.4f}'.format(mae, mse, rmse, smape, mases))
